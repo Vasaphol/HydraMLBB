@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MLBB Pro Draft - HYDRA Edition</title>
+    <style>
+        :root {
+            --blue: #3b82f6; --red: #ef4444; --gold: #fbbf24;
+            --slot-height: 80px; 
+            --side-width: 260px;
+        }
+
+        /* พื้นหลังหลัก */
+        body {
+            margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #020617; 
+            background-image: url('images/Hydra.png');
+            background-repeat: no-repeat;
+            background-position: center; 
+            background-size: 30%; /* ขนาดบนมือถือ */
+            background-attachment: fixed;
+            color: #fff;
+            height: 100vh; 
+            width: 100vw;
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        /* ปรับขนาดพื้นหลังให้ใหญ่ขึ้นเฉพาะบน PC (หน้าจอ 1024px ขึ้นไป) */
+        @media screen and (min-width: 1024px) {
+            body {
+                background-size: 55%; /* ปรับค่านี้เพิ่ม/ลด ตามความต้องการ (เช่น 60% หรือ 70%) */
+            }
+        }
+
+        /* แผ่นสีดำโปร่งแสงทับพื้นหลัง */
+        body::before { 
+            content: ""; 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(2, 6, 23, 0.85); 
+            z-index: -1; 
+        }
+
+        * { box-sizing: border-box; -ms-overflow-style: none; scrollbar-width: none; }
+        *::-webkit-scrollbar { display: none; }
+
+        .header { 
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center; 
+            padding: 12px 20px; 
+            background: rgba(15, 23, 42, 0.95); 
+            border-bottom: 2px solid #1e293b; 
+            flex-shrink: 0; 
+        }
+
+        #status { font-size: 20px; font-weight: 900; color: var(--gold); }
+        
+        .header-title {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+        }
+
+        .controls { display: flex; justify-content: flex-end; gap: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-undo { background: #475569; color: white; }
+        .btn-reset { background: var(--red); color: white; }
+
+        .filter-bar { display: flex; justify-content: center; gap: 8px; padding: 10px; background: rgba(15, 23, 42, 0.5); overflow-x: auto; flex-shrink: 0; }
+        .filter-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .filter-btn.active { background: var(--gold); color: #000; font-weight: bold; }
+
+        .container { 
+            display: grid; 
+            grid-template-columns: var(--side-width) 1fr var(--side-width); 
+            flex: 1; 
+            gap: 15px; 
+            padding: 15px; 
+            overflow: hidden; 
+        }
+
+        .slot { 
+            background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 6px; 
+            height: var(--slot-height); margin-bottom: 10px; overflow: hidden; position: relative; 
+        }
+        .blue .slot { border-left: 5px solid var(--blue); }
+        .red .slot { border-right: 5px solid var(--red); }
+        
+        .slot img { 
+            width: 100%; height: 100%; 
+            object-fit: cover; 
+            object-position: center 25%; 
+            position: absolute; top: 0; left: 0; z-index: 1; 
+        }
+
+        @keyframes slideFromRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .new-entry { animation: slideFromRight 0.4s ease-out forwards; }
+        
+        .slot span { 
+            position: absolute; bottom: 0; width: 100%; 
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            padding: 6px 10px; font-weight: 700; font-size: 14px; 
+            text-transform: uppercase; z-index: 2;
+        }
+        .red .slot span { text-align: right; }
+
+        .pool-box { 
+            background: rgba(15, 23, 42, 0.6); 
+            border-radius: 12px; padding: 15px; 
+            overflow-y: auto; border: 1px solid #1e293b; 
+            backdrop-filter: blur(5px);
+        }
+        .hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+        .hero { position: relative; cursor: pointer; border-radius: 6px; overflow: hidden; aspect-ratio: 1/1; background: #1e293b; border: 1px solid transparent; }
+        .hero:hover { border-color: var(--gold); transform: scale(1.05); z-index: 5; }
+        .hero img { width: 100%; height: 100%; object-fit: cover; }
+        .hero-name { font-size: 10px; text-align: center; background: rgba(0,0,0,0.8); position: absolute; bottom: 0; width: 100%; padding: 2px 0; }
+        .hero.used { filter: grayscale(1) brightness(0.2); pointer-events: none; }
+
+        .ban-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .ban-slot { width: 48px; height: 48px; background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 4px; overflow: hidden; position: relative; }
+        .ban-slot img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* -----------------------------------------------------------
+            844x390 Fix
+        ----------------------------------------------------------- */
+        @media screen and (max-height: 450px) and (orientation: landscape) {
+            :root { 
+                --side-width: 150px; 
+                --slot-height: 35px; 
+            }
+            .header { padding: 4px 15px; }
+            #status { font-size: 13px; }
+            .header-title { font-size: 15px; letter-spacing: 1px; }
+            .btn { padding: 4px 10px; font-size: 10px; }
+            .filter-bar { padding: 4px; }
+            .filter-btn { padding: 2px 10px; font-size: 11px; }
+            .container { padding: 5px; gap: 5px; }
+            .team-label { font-size: 10px; margin-bottom: 2px !important; }
+            .ban-row { margin-bottom: 3px; gap: 3px; }
+            .ban-slot { width: 24px; height: 24px; }
+            .slot { margin-bottom: 4px; }
+            .slot span { font-size: 8px; padding: 1px 4px; }
+            .hero-grid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; }
+            .hero-name { font-size: 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div id="status">DRAFT START</div>
+    <div class="header-title">HYDRA MLBB</div>
+    <div class="controls">
+        <button class="btn btn-undo" onclick="undo()">UNDO</button>
+        <button class="btn btn-reset" onclick="reset()">RESET</button>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <button class="filter-btn active" onclick="filter('all', this)">ALL</button>
+    <button class="filter-btn" onclick="filter('Tank', this)">TANK</button>
+    <button class="filter-btn" onclick="filter('Fighter', this)">FIGHTER</button>
+    <button class="filter-btn" onclick="filter('Assassin', this)">ASSASSIN</button>
+    <button class="filter-btn" onclick="filter('Mage', this)">MAGE</button>
+    <button class="filter-btn" onclick="filter('Marksman', this)">MARKSMAN</button>
+    <button class="filter-btn" onclick="filter('Support', this)">SUPPORT</button>
+</div>
+
+<div class="container">
+    <div class="team blue">
+        <div class="team-label" style="color: var(--blue); font-weight: 900; margin-bottom: 5px;">BLUE TEAM</div>
+        <div class="ban-row" id="blueBan"></div>
+        <div id="bluePick"></div>
+    </div>
+    
+    <div class="pool-box">
+        <div class="hero-grid" id="heroPool"></div>
+    </div>
+    
+    <div class="team red">
+        <div class="team-label" style="color: var(--red); font-weight: 900; margin-bottom: 5px; text-align: right;">RED TEAM</div>
+        <div class="ban-row" id="redBan" style="justify-content: flex-end;"></div>
+        <div id="redPick"></div>
+    </div>
+</div>
+
+<script>
+    const heroData = [
+        { name: "Akai", roles: ["Tank"], ext: "jpg" }, { name: "Grock", roles: ["Tank", "Fighter"], ext: "jpg" }, 
+        { name: "Gloo", roles: ["Tank"], ext: "jpeg" }, { name: "Kaja", roles: ["Fighter", "Support"], ext: "jpg" }, 
+        { name: "Carmilla", roles: ["Tank", "Support"], ext: "jpg" }, { name: "Khufra", roles: ["Tank"], ext: "jpg" }, 
+        { name: "Gatotkaca", roles: ["Tank", "Fighter"], ext: "jpg" }, { name: "Johnson", roles: ["Tank", "Support"], ext: "jpg" }, 
+        { name: "Chip", roles: ["Tank", "Support"], ext: "jpg" }, { name: "Diggie", roles: ["Support"], ext: "jpg" }, 
+        { name: "Terizla", roles: ["Tank", "Fighter"], ext: "jpg" }, { name: "Tigreal", roles: ["Tank"], ext: "jpg" }, 
+        { name: "Barats", roles: ["Tank", "Fighter"], ext: "jpg" }, { name: "Belerick", roles: ["Tank"], ext: "jpg" }, 
+        { name: "Baxia", roles: ["Tank"], ext: "jpg" }, { name: "Franco", roles: ["Tank"], ext: "jpg" }, 
+        { name: "Floryn", roles: ["Support"], ext: "jpg" }, { name: "Faramis", roles: ["Mage", "Support"], ext: "webp" }, 
+        { name: "Fredrinn", roles: ["Tank", "Fighter"], ext: "jpg" }, { name: "Masha", roles: ["Fighter","Tank"], ext: "jpg" }, 
+        { name: "Mathilda", roles: ["Assassin", "Support"], ext: "jpeg" }, { name: "Minotaur", roles: ["Tank", "Support"], ext: "jpg" }, 
+        { name: "Uranus", roles: ["Tank"], ext: "jpg" }, { name: "Rafaela", roles: ["Support"], ext: "jpeg" }, 
+        { name: "Lolita", roles: ["Tank", "Support"], ext: "webp" }, { name: "Alice", roles: ["Tank", "Mage"], ext: "webp" }, 
+        { name: "Edith", roles: ["Tank", "Marksman"], ext: "jpg" }, { name: "Estes", roles: ["Support"], ext: "jpg" }, 
+        { name: "Esmeralda", roles: ["Tank", "Mage"], ext: "jpeg" }, { name: "Angela", roles: ["Support"], ext: "jfif" },
+        { name: "Atlas", roles: ["Tank"], ext: "jpg" }, { name: "Hilda", roles: ["Tank", "Fighter"], ext: "jpg" },
+        { name: "Hylos", roles: ["Tank"], ext: "jfif" }, { name: "Guinevere", roles: ["Fighter"], ext: "jpg" },
+        { name: "Khaleed", roles: ["Fighter"], ext: "jpg" }, { name: "Kalea", roles: ["Fighter", "Tank"], ext: "webp" },
+        { name: "Jawhead", roles: ["Fighter"], ext: "jpg" }, { name: "Zilong", roles: ["Fighter", "Assassin"], ext: "jpg" },
+        { name: "Julian", roles: ["Fighter", "Assassin"], ext: "jpg" }, { name: "Silvanna", roles: ["Fighter"], ext: "jpg" },
+        { name: "Chou", roles: ["Fighter"], ext: "jpg" }, { name: "Suyou", roles: ["Fighter","Assassin"], ext: "webp" },
+        { name: "Sun", roles: ["Fighter"], ext: "webp" }, { name: "Cici", roles: ["Fighter"], ext: "webp" },
+        { name: "Sora", roles: ["Fighter","Assassin"], ext: "png" }, { name: "Dyrroth", roles: ["Fighter"], ext: "webp" },
+        { name: "Thamuz", roles: ["Fighter"], ext: "webp" }, { name: "Balmond", roles: ["Fighter"], ext: "jpg" },
+        { name: "Badang", roles: ["Fighter"], ext: "jpg" }, { name: "Bane", roles: ["Fighter", "Mage"], ext: "jpg" },
+        { name: "Benedetta", roles: ["Fighter", "Assassin"], ext: "jpg" }, { name: "Paquito", roles: ["Fighter","Assassin"], ext: "jpg" },
+        { name: "Freya", roles: ["Fighter"], ext: "jpg" }, { name: "Phoveus", roles: ["Fighter"], ext: "jpg" },
+        { name: "Martis", roles: ["Fighter"], ext: "jpg" }, { name: "Ruby", roles: ["Fighter"], ext: "jpg" },
+        { name: "Roger", roles: ["Fighter","Marksman"], ext: "jfif" }, { name: "Lapu-Lapu", roles: ["Fighter"], ext: "jpg" },
+        { name: "Leomord", roles: ["Fighter"], ext: "jfif" }, { name: "Lukas", roles: ["Fighter"], ext: "jfif" },
+        { name: "Yin", roles: ["Fighter", "Assassin"], ext: "jpg" }, { name: "Alucard", roles: ["Fighter", "Assassin"], ext: "jpg" },
+        { name: "Yu Zhong", roles: ["Fighter"], ext: "jpg" }, { name: "Aulus", roles: ["Fighter"], ext: "jpg" },
+        { name: "Aldous", roles: ["Fighter"], ext: "jfif" }, { name: "Alpha", roles: ["Fighter"], ext: "jfif" },
+        { name: "Argus", roles: ["Fighter"], ext: "jpg" }, { name: "Arlott", roles: ["Fighter", "Assassin"], ext: "webp" },
+        { name: "X.borg", roles: ["Fighter"], ext: "jfif" }, { name: "Kadita", roles: ["Assassin", "Mage"], ext: "jpg" },
+        { name: "Karina", roles: ["Assassin"], ext: "webp" }, { name: "Joy", roles: ["Assassin"], ext: "jpg" },
+        { name: "Gusion", roles: ["Assassin"], ext: "jpg" }, { name: "Saber", roles: ["Assassin"], ext: "jpg" },
+        { name: "Selena", roles: ["Assassin", "Mage"], ext: "jpg" }, { name: "Natalia", roles: ["Assassin"], ext: "jpg" },
+        { name: "Nolan", roles: ["Assassin"], ext: "jpg" }, { name: "Fanny", roles: ["Assassin"], ext: "jpg" },
+        { name: "Lancelot", roles: ["Assassin"], ext: "jpg" }, { name: "Lesley", roles: ["Assassin", "Marksman"], ext: "webp" },
+        { name: "Ling", roles: ["Assassin"], ext: "jpg" }, { name: "Aamon", roles: ["Assassin"], ext: "jpg" },
+        { name: "Yi Sun-shin", roles: ["Assassin", "Marksman"], ext: "jpg" }, { name: "Hanzo", roles: ["Assassin"], ext: "jpg" },
+        { name: "Hayabusa", roles: ["Assassin"], ext: "webp" }, { name: "Harley", roles: ["Assassin", "Mage"], ext: "jpg" },
+        { name: "Helcurt", roles: ["Assassin"], ext: "webp" }, { name: "Granger", roles: ["Marksman"], ext: "jfif" },
+        { name: "Claude", roles: ["Marksman"], ext: "jpg" }, { name: "Clint", roles: ["Marksman"], ext: "webp" },
+        { name: "Karrie", roles: ["Marksman"], ext: "jpg" }, { name: "Kimmy", roles: ["Marksman" , "Mage"], ext: "png" },
+        { name: "Natan", roles: ["Marksman"], ext: "jfif" }, { name: "Bruno", roles: ["Marksman"], ext: "jpg" },
+        { name: "Beatrix", roles: ["Marksman"], ext: "jpg" }, { name: "Brody", roles: ["Marksman"], ext: "jpg" },
+        { name: "Popol and Kupa", roles: ["Marksman"], ext: "jpg" }, { name: "Moskov", roles: ["Marksman"], ext: "jfif" },
+        { name: "Miya", roles: ["Marksman"], ext: "jpg" }, { name: "Melissa", roles: ["Marksman"], ext: "jpg" },
+        { name: "Layla", roles: ["Marksman"], ext: "jpg" }, { name: "Wanwan", roles: ["Marksman"], ext: "jfif" },
+        { name: "Obsidia", roles: ["Marksman"], ext: "jpg" }, { name: "Ixia", roles: ["Marksman"], ext: "jfif" },
+        { name: "Irithel", roles: ["Marksman"], ext: "jfif" }, { name: "Hanabi", roles: ["Marksman"], ext: "webp" },
+        { name: "Gord", roles: ["Mage"], ext: "jpeg" }, { name: "Kagura", roles: ["Mage"], ext: "jpg" },
+        { name: "Zhuxin", roles: ["Mage"], ext: "jfif" }, { name: "Chang'e", roles: ["Mage"], ext: "jfif" },
+        { name: "Xavier", roles: ["Mage"], ext: "jfif" }, { name: "Cecilion", roles: ["Mage"], ext: "jpg" },
+        { name: "Zhask", roles: ["Mage"], ext: "jpg" }, { name: "Cyclops", roles: ["Mage"], ext: "webp" },
+        { name: "Nana", roles: ["Mage"], ext: "jpg" }, { name: "Novaria", roles: ["Mage"], ext: "jpg" },
+        { name: "Zetian", roles: ["Mage"], ext: "jfif" }, { name: "Pharsa", roles: ["Mage"], ext: "jpg" },
+        { name: "Luo Yi", roles: ["Mage"], ext: "jfif" }, { name: "Eudora", roles: ["Mage"], ext: "jfif" },
+        { name: "Lylia", roles: ["Mage"], ext: "jfif" }, { name: "Lunox", roles: ["Mage"], ext: "jpg" },
+        { name: "Valir", roles: ["Mage"], ext: "jpg" }, { name: "Valentina", roles: ["Mage"], ext: "jpg" },
+        { name: "Vexana", roles: ["Mage"], ext: "jpg" }, { name: "Vale", roles: ["Mage"], ext: "jpg" },
+        { name: "Aurora", roles: ["Mage"], ext: "webp" }, { name: "Yve", roles: ["Mage"], ext: "jpg" },
+        { name: "Odette", roles: ["Mage"], ext: "jpg" }, { name: "Harith", roles: ["Mage"], ext: "jpg" }
+    ];
+
+    const draftOrder = [
+        {team:"blue", type:"ban"}, {team:"red", type:"ban"}, {team:"blue", type:"ban"},
+        {team:"red", type:"ban"}, {team:"blue", type:"ban"}, {team:"red", type:"ban"},
+        {team:"blue", type:"pick"}, {team:"red", type:"pick"}, {team:"red", type:"pick"},
+        {team:"blue", type:"pick"}, {team:"blue", type:"pick"}, {team:"red", type:"pick"},
+        {team:"red", type:"ban"}, {team:"blue", type:"ban"}, {team:"red", type:"ban"},
+        {team:"blue", type:"ban"}, {team:"red", type:"pick"}, {team:"blue", type:"pick"},
+        {team:"blue", type:"pick"}, {team:"red", type:"pick"}
+    ];
+
+    let step = 0; let history = []; let currentRole = 'all';
+
+    function init() { createSlots(); renderPool(); updateStatus(); }
+
+    function createSlots() {
+        ['blueBan', 'redBan', 'bluePick', 'redPick'].forEach(id => {
+            const el = document.getElementById(id); el.innerHTML = "";
+            for(let i=0; i<5; i++) {
+                const div = document.createElement('div');
+                div.className = id.includes('Ban') ? 'ban-slot' : 'slot';
+                el.appendChild(div);
+            }
+        });
+    }
+
+    function filter(role, btn) {
+        currentRole = role;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderPool();
+    }
+
+    function renderPool() {
+        const pool = document.getElementById("heroPool"); pool.innerHTML = "";
+        heroData.forEach(h => {
+            if(currentRole !== 'all' && !h.roles.includes(currentRole)) return;
+            const isUsed = history.some(item => item.hero === h.name);
+            const div = document.createElement("div");
+            div.className = `hero ${isUsed ? 'used' : ''}`;
+            div.innerHTML = `<img src="images/${h.name}.${h.ext}"><div class="hero-name">${h.name}</div>`;
+            div.onclick = () => {
+                if(step < draftOrder.length) {
+                    const data = {...draftOrder[step], hero: h.name, ext: h.ext};
+                    history.push(data);
+                    addHeroToSlot(data, true); 
+                    step++; updateStatus(); renderPool();
+                }
+            };
+            pool.appendChild(div);
+        });
+    }
+
+    function addHeroToSlot(data, isNew) {
+        const containerId = `${data.team}${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`;
+        const slots = document.getElementById(containerId).children;
+        for(let slot of slots) {
+            if(!slot.innerHTML) {
+                const animClass = isNew ? 'new-entry' : '';
+                slot.innerHTML = `<img src="images/${data.hero}.${data.ext}" class="${animClass}">`;
+                if(data.type === 'pick') {
+                    slot.innerHTML += `<span class="${animClass}">${data.hero}</span>`;
+                }
+                break;
+            }
+        }
+    }
+
+    function updateStatus() {
+        const st = document.getElementById("status");
+        if(step >= draftOrder.length) st.innerText = "DRAFT FINISHED";
+        else st.innerText = `${draftOrder[step].team.toUpperCase()} ${draftOrder[step].type.toUpperCase()}`;
+    }
+
+    function undo() {
+        if(step > 0) {
+            history.pop(); step--; createSlots();
+            history.forEach(data => addHeroToSlot(data, false));
+            renderPool(); updateStatus();
+        }
+    }
+
+    function reset() {
+        if(confirm("ต้องการล้าง Draft ทั้งหมดหรือไม่?")) {
+            history = []; step = 0; createSlots(); renderPool(); updateStatus();
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
