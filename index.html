@@ -35,6 +35,7 @@
         * { box-sizing: border-box; -ms-overflow-style: none; scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
 
+        /* Header */
         .header { 
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; 
             padding: 12px 20px; background: rgba(15, 23, 42, 0.95); 
@@ -43,17 +44,20 @@
         #status { font-size: 20px; font-weight: 900; color: var(--gold); }
         .header-title { font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #fff; text-shadow: 0 0 10px rgba(59, 130, 246, 0.6); }
         .controls { display: flex; justify-content: flex-end; gap: 8px; }
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
         .btn-undo { background: #475569; color: white; }
         .btn-reset { background: var(--red); color: white; }
 
+        /* Filter */
         .filter-bar { display: flex; justify-content: center; gap: 8px; padding: 10px; background: rgba(15, 23, 42, 0.5); overflow-x: auto; flex-shrink: 0; }
         .filter-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; white-space: nowrap; }
         .filter-btn.active { background: var(--gold); color: #000; font-weight: bold; }
 
+        /* Container */
         .container { display: grid; grid-template-columns: var(--side-width) 1fr var(--side-width); flex: 1; gap: 15px; padding: 15px; overflow: hidden; }
 
-        /* Active Effect */
+        /* Slot Active Glow */
         @keyframes borderGlow {
             0% { box-shadow: 0 0 5px var(--gold), inset 0 0 5px var(--gold); border-color: var(--gold); }
             50% { box-shadow: 0 0 20px var(--gold), inset 0 0 10px var(--gold); border-color: #fff; }
@@ -74,7 +78,7 @@
         .anim-blue { animation: slideFromLeft 0.4s ease-out forwards; }
         .anim-red { animation: slideFromRight 0.4s ease-out forwards; }
 
-        /* Pick Slots (Updated: Image position to top) */
+        /* Slots Style */
         .slot { 
             background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 6px; 
             height: var(--slot-height); margin-bottom: 10px; overflow: hidden; position: relative; 
@@ -83,24 +87,16 @@
         .red .slot { border-right: 5px solid var(--red); }
         
         .slot img { 
-            width: 100%; height: 100%; 
-            object-fit: cover; 
-            object-position: top center; /* ชิดขอบบน */
+            width: 100%; height: 100%; object-fit: cover; object-position: top center; 
             position: absolute; top: 0; left: 0; z-index: 1; 
         }
         
         .slot span { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 6px 10px; font-weight: 700; font-size: 14px; text-transform: uppercase; z-index: 2; }
         .red .slot span { text-align: right; }
 
-        /* Ban Slots (Updated: Image position to top) */
         .ban-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .ban-slot { width: 48px; height: 48px; background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; border-radius: 4px; overflow: hidden; position: relative; }
-        
-        .ban-slot img { 
-            width: 100%; height: 100%; 
-            object-fit: cover; 
-            object-position: top center; /* ชิดขอบบน */
-        }
+        .ban-slot img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 
         /* Hero Pool */
         .pool-box { background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 15px; overflow-y: auto; border: 1px solid #1e293b; backdrop-filter: blur(5px); }
@@ -111,6 +107,26 @@
         .hero:hover img { border-color: var(--gold); }
         .hero-name { font-size: 11px; text-align: center; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
         .hero.used { filter: grayscale(1) opacity(0.2); pointer-events: none; }
+
+        /* --- Custom Modal Style --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: #1e293b; border: 2px solid var(--gold); border-radius: 12px;
+            padding: 30px; width: 90%; max-width: 400px; text-align: center;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.2);
+            transform: scale(0.8); transition: 0.3s;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-title { font-size: 24px; font-weight: 900; color: var(--gold); margin-bottom: 15px; }
+        .modal-text { color: #cbd5e1; margin-bottom: 25px; line-height: 1.5; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+        .btn-confirm { background: var(--red); color: white; flex: 1; padding: 12px; }
+        .btn-cancel { background: #475569; color: white; flex: 1; padding: 12px; }
 
         @media screen and (max-height: 450px) and (orientation: landscape) {
             :root { --side-width: 150px; --slot-height: 35px; }
@@ -123,12 +139,23 @@
 </head>
 <body>
 
+<div class="modal-overlay" id="resetModal">
+    <div class="modal-content">
+        <div class="modal-title">CONFIRM RESET</div>
+        <div class="modal-text">คุณต้องการล้างข้อมูล Draft ทั้งหมด <br>และเริ่มต้นใหม่ใช่หรือไม่?</div>
+        <div class="modal-btns">
+            <button class="btn btn-confirm" onclick="confirmReset()">YES, RESET</button>
+            <button class="btn btn-cancel" onclick="closeResetModal()">CANCEL</button>
+        </div>
+    </div>
+</div>
+
 <div class="header">
     <div id="status">DRAFT START</div>
     <div class="header-title">HYDRA MLBB</div>
     <div class="controls">
         <button class="btn btn-undo" onclick="undo()">UNDO</button>
-        <button class="btn btn-reset" onclick="reset()">RESET</button>
+        <button class="btn btn-reset" onclick="openResetModal()">RESET</button>
     </div>
 </div>
 
@@ -159,7 +186,6 @@
 </div>
 
 <script>
-  
     const heroData = [
         { name: "Akai", roles: ["Tank"], ext: "jpg" }, { name: "Grock", roles: ["Tank", "Fighter"], ext: "jpg" }, 
         { name: "Gloo", roles: ["Tank"], ext: "jpeg" }, { name: "Kaja", roles: ["Fighter", "Support"], ext: "jpg" }, 
@@ -276,15 +302,9 @@
     function addHeroToSlot(data, isNew) {
         const containerId = `${data.team}${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`;
         const slots = document.getElementById(containerId).children;
-        
         for(let slot of slots) {
             if(!slot.innerHTML) {
-                let animClass = "";
-                if(isNew) {
-                    if(data.type === 'ban') animClass = "anim-ban";
-                    else if(data.team === 'blue') animClass = "anim-blue";
-                    else animClass = "anim-red";
-                }
+                let animClass = isNew ? (data.type === 'ban' ? "anim-ban" : (data.team === 'blue' ? "anim-blue" : "anim-red")) : "";
                 slot.innerHTML = `<img src="images/${data.hero}.${data.ext}" class="${animClass}">`;
                 if(data.type === 'pick') {
                     slot.innerHTML += `<span class="${animClass}">${data.hero}</span>`;
@@ -328,10 +348,19 @@
         }
     }
 
-    function reset() {
-        if(confirm("ต้องการล้าง Draft ทั้งหมดหรือไม่?")) {
-            history = []; step = 0; createSlots(); renderPool(); updateStatus();
-        }
+    /* --- Modal Functions --- */
+    function openResetModal() {
+        document.getElementById('resetModal').classList.add('active');
+    }
+
+    function closeResetModal() {
+        document.getElementById('resetModal').classList.remove('active');
+    }
+
+    function confirmReset() {
+        history = []; step = 0; 
+        createSlots(); renderPool(); updateStatus();
+        closeResetModal();
     }
 
     init();
